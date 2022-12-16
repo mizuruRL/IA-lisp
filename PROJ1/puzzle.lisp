@@ -1,0 +1,41 @@
+(defun insert-vertical-arc (board line column)
+    (cond ((null board) nil)
+        ((or (< (length (caadr board)) line) (< (length (cadr board)) column) (>= 0 line) (>= 0 column) (= 1 (get-vertical-arc-at (cadr board) line column))) nil)
+        (t (list (car board) (append (get-preceeding (cadr board) column) (cons (replacen (get-n (cadr board) column) line 1) nil) (nthcdr column (cadr board)))))
+    )
+)
+
+(defun insert-horizontal-arc (board line column)
+    (cond ((null board) nil)
+        ((or (< (length (caar board)) column) (< (length (car board)) line) (>= 0 line) (>= 0 column) (= 1 (get-horizontal-arc-at (car board) line column))) nil)
+        (t (list (append (get-preceeding (car board) line) (cons (replacen (get-n (car board) line) column 1) nil) (nthcdr line (car board))) (cadr board)))
+    )
+)
+
+(defun get-preceeding (l n)
+    (subseq l 0 (1- n))
+)
+
+(defun replacen (l i n)
+    (cond ((null l) nil)
+          ((= i 1) (cons n (cdr l)))
+          (t (cons (car l) (replacen (cdr l) (1- i) n)))
+    )
+)
+
+(defun get-n (l n)
+        (nth (1- n) l)
+)
+
+(defun get-vertical-arc-at (columns-list line column)
+        (nth (1- line) (get-n columns-list column))
+)
+
+(defun get-horizontal-arc-at (lines-list line column)
+        (nth (1- column) (get-n lines-list line))
+)
+
+(defun test ()
+    (setq board '(((0 0 0)(0 0 1)(0 1 1)(0 0 1))((0 0 0)(0 1 0)(0 0 1)(0 1 1))))
+    (insert-horizontal-arc (insert-vertical-arc board 1 4) 3 1)
+)
