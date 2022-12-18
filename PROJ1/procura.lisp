@@ -1,5 +1,0 @@
-(defun bfs (&optional open-list closed-list)
-    (cond ((null open-list) nil)
-          (t form2)
-    )
-)
