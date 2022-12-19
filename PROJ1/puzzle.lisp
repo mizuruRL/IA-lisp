@@ -1,5 +1,5 @@
-(defun create-node (state &optional parent-node (node-level 0))
-    (list state parent-node node-level) 
+(defun create-node (state &optional parent-node (node-level 0) (h 0))
+    (list state parent-node node-level h) 
 )
 
 (defun get-node-state (node)
@@ -14,8 +14,12 @@
     (caddr node)
 )
 
-(defun get-node-cost (node &optional (h 0))
-    (+ (get-node-level node) h)
+(defun get-node-h (node)
+    (car (last node))
+)
+
+(defun get-node-cost (node)
+    (+ (get-node-level node) (get-node-h node))
 )
 
 (defun get-all-parents (node)
@@ -27,25 +31,25 @@
 
 (defun get-all-states (node)
     (let ((parent-node (get-parent-node node)))
-        (cond ((null parent-node) nil)
+        (cond ((null node) nil)
               (t (cons (get-node-state node) (get-all-states parent-node)))
         ))
 )
 
 (defun h1 (node target)
-    (- target (check-all-closed-boxes))
+    (- target (check-all-closed-boxes (get-node-state node)))
 )
 
-(defun h0 ()
+(defun h0 (&optional node target)
     0
 )
 
-(defun qsort-nodes (nodes-list h-func &rest h-func-args)
+(defun qsort-nodes (nodes-list)
     (cond ((null nodes-list) nil)
         (t (append 
-                (qsort-nodes (get-sublist-by-comparator (cdr nodes-list) (get-node-cost (car nodes-list) (funcall h-func h-func-args)) '<) h-func h-func-args)
+                (qsort-nodes (get-sublist-by-comparator (cdr nodes-list) (get-node-cost (car nodes-list)) '<))
                 (cons (car nodes-list) nil)
-                (qsort-nodes (get-sublist-by-comparator (cdr nodes-list) (get-node-cost (car nodes-list) (funcall h-func h-func-args)) '>=) h-func h-func-args)
+                (qsort-nodes (get-sublist-by-comparator (cdr nodes-list) (get-node-cost (car nodes-list)) '>=))
             )
         )
     )
@@ -65,21 +69,21 @@
     )
 )
 
-(defun generate-successors (node action-list algorithm &optional (target 3) (max-depth 1) (line 1) (column 1))
+(defun generate-successors (node action-list algorithm &optional (target 3) (max-depth 1) (h-func 'h0) (line 1) (column 1))
     (if (and (eql algorithm 'dfs) (= (get-node-level node) max-depth))
         nil
-        (let ((succ-node (generate-successor node (car action-list) line column))
+        (let ((succ-node (generate-successor node (car action-list) line column h-func target))
             (action (car action-list))
             (next-pos-hor (increment-pos-horizontal (car (get-node-state node)) line column))
             (next-pos-ver (increment-pos-vertical (cadr (get-node-state node)) line column)))
             (cond ((solutionp succ-node target) (cons succ-node nil))
                 ((null action) nil)
-                ((and (null succ-node) (eql action 'insert-horizontal-arc) (null next-pos-hor)) (generate-successors node (cdr action-list) algorithm target max-depth))
-                ((and (null succ-node) (eql action 'insert-vertical-arc) (null next-pos-ver)) (generate-successors node (cdr action-list) algorithm target max-depth))
-                ((and (null succ-node) (eql action 'insert-horizontal-arc)) (generate-successors node action-list algorithm target max-depth (car next-pos-hor) (cadr next-pos-hor)))
-                ((and (null succ-node) (eql action 'insert-vertical-arc)) (generate-successors node action-list algorithm target max-depth (car next-pos-ver) (cadr next-pos-ver)))
-                ((eql action 'insert-horizontal-arc) (cons succ-node (generate-successors node action-list algorithm target max-depth (car next-pos-hor) (cadr next-pos-hor))))
-                ((eql action 'insert-vertical-arc) (cons succ-node (generate-successors node action-list algorithm target max-depth (car next-pos-ver) (cadr next-pos-ver))))
+                ((and (null succ-node) (eql action 'insert-horizontal-arc) (null next-pos-hor)) (generate-successors node (cdr action-list) algorithm target max-depth h-func))
+                ((and (null succ-node) (eql action 'insert-vertical-arc) (null next-pos-ver)) (generate-successors node (cdr action-list) algorithm target max-depth h-func))
+                ((and (null succ-node) (eql action 'insert-horizontal-arc)) (generate-successors node action-list algorithm target max-depth h-func (car next-pos-hor) (cadr next-pos-hor)))
+                ((and (null succ-node) (eql action 'insert-vertical-arc)) (generate-successors node action-list algorithm target max-depth h-func (car next-pos-ver) (cadr next-pos-ver)))
+                ((eql action 'insert-horizontal-arc) (cons succ-node (generate-successors node action-list algorithm target max-depth h-func (car next-pos-hor) (cadr next-pos-hor))))
+                ((eql action 'insert-vertical-arc) (cons succ-node (generate-successors node action-list algorithm target max-depth h-func (car next-pos-ver) (cadr next-pos-ver))))
             )
         )
     )
@@ -89,11 +93,11 @@
     (not (null (member (get-node-state succ-node) (mapcar 'car l))))
 )
 
-(defun generate-successor (node action &optional (line 1) (column 1))
+(defun generate-successor (node action &optional (line 1) (column 1) h-func (target 3))
     (if (null action)
         nil
         (let ((board (funcall action (get-node-state node) line column)))
-            (if (null board) nil (create-node board node (1+ (get-node-level node))))
+            (if (null board) nil (create-node board node (1+ (get-node-level node)) (funcall h-func (create-node board node (1+ (get-node-level node))) target)))
         )
     )
 )
@@ -102,8 +106,8 @@
     '(insert-horizontal-arc insert-vertical-arc)
 )
 
-(defun show-solution (objective-node)
-    (list (get-all-states objective-node))
+(defun show-solution (objective-node &optional total-nodes total-expanded-nodes)
+    (list objective-node total-nodes total-expanded-nodes)
 )
 
 (defun bfs (&optional open-list closed-list target)
@@ -112,7 +116,7 @@
           (t 
             (let ((successors (generate-successors (car open-list) (all-actions-list) 'bfs target)))
                 (if (solutionp (car (last successors)) target)
-                    (show-solution (car (last successors)))
+                    (show-solution (car (last successors)) (total-nodes open-list closed-list) (length closed-list))
                     (bfs (append (cdr open-list) successors) (append closed-list (cons (car open-list) nil)) target)
                 )
             )
@@ -126,12 +130,31 @@
           (t 
             (let ((successors (generate-successors (car open-list) (all-actions-list) 'dfs target max-depth)))
                 (if (solutionp (car (last successors)) target)
-                    (show-solution (car (last successors)))
+                    (show-solution (car (last successors)) (total-nodes open-list closed-list) (length closed-list))
                     (dfs (append successors (cdr open-list)) (append closed-list (cons (car open-list) nil)) target max-depth)
                 )
             )
         )
     )
+)
+
+(defun a* (&optional open-list closed-list target (h-func 'h0))
+    (cond ((null open-list) nil)
+          ((eql 'h0 h-func) (bfs open-list closed-list target))
+          ((successor-exists (car open-list) closed-list) (a* (cdr open-list) closed-list target h-func))
+          (t 
+            (let ((successors (qsort-nodes (generate-successors (car open-list) (all-actions-list) 'a* target 1 h-func))))
+                (if (solutionp (car successors) target)
+                    (show-solution (car (last successors)) (total-nodes open-list closed-list) (length closed-list))
+                    (a* (append (cdr open-list) successors) (append closed-list (cons (car open-list) nil)) target h-func)
+                )
+            )
+        )
+    )
+)
+
+(defun total-nodes (open closed)
+    (+ (length open) (length closed))
 )
 
 (defun insert-vertical-arc (board line column)
