@@ -63,9 +63,9 @@ and divides it by the sum of adjacent arc types a given horizontal arc has."
 "Quicksorts a given list of nodes in ascending order by node cost."
     (cond ((null nodes-list) nil)
         (t (append 
-                (qsort-nodes (get-sublist-by-comparator (cdr nodes-list) (get-node-cost (car nodes-list)) '<))
+                (qsort-nodes (get-sublist-by-comparator (cdr nodes-list) (get-node-h (car nodes-list)) '>=))
                 (cons (car nodes-list) nil)
-                (qsort-nodes (get-sublist-by-comparator (cdr nodes-list) (get-node-cost (car nodes-list)) '>=))
+                (qsort-nodes (get-sublist-by-comparator (cdr nodes-list) (get-node-h (car nodes-list)) '<))
             )
         )
     )
@@ -255,28 +255,35 @@ and a box target TARGET."
     (count player (apply #'append arcs))
 )
 
-(defvar *optimal-play* (list nil most-negative-fixnum))
+(defun starting-board ()
+    '(((0 2 0)(1 0 0)(0 2 0))((1 0)(2 0)(0 0)(1 0)))
+)
 
-(defun negamax (node depth player a b color &optional (max-player 2))
-    (if (or (terminal-p node) (= depth 0))
-        (* color (eval-node node max-player))
-        (let ((successors (generate-successors node (all-actions-list) player))
-        (value most-negative-fixnum))
-            (dolist (child successors)
-                (setf value (max value (- (negamax child (1- depth) (switch-player player) (- b) (- a) (- color)))))
-                (progn (when (and (null (get-parent-node node)) (< (second *optimal-play*) value)) (setf *optimal-play* (list child value))))
-                (setf a (max a value))
-                (when (>= a b) (return))
+(defun play-cpu (state depth player &optional (max-player 2))
+    (reset-vars)
+    (negamax (create-node state) depth player most-negative-fixnum most-positive-fixnum 1 max-player)
+)
+
+(defun play-human (state arc-type line column player)
+    (let ((arc-fun (get-arc-fun arc-type)))
+        (if (null arc-type)
+            -1
+            (let ((new-board (funcall arc-fun (car state) line column player)))
+                (if (null new-board)
+                    nil
+                    (list new-board (check-all-closed-boxes new-board player) (check-all-closed-boxes new-board (switch-player player)))
+                )
             )
-            value
         )
     )
 )
 
-(defun starting-board ()
-    '(((0 0 1)(0 1 1)(2 1 0))((2 2)(0 2)(2 2)(0 2)))
+(defun get-arc-fun (arc-type)
+    (cond ((eql arc-type 'h) (car (all-actions-list)))
+          ((eql arc-type 'v) (cadr (all-actions-list)))
+          (T nil)
+    )
 )
-
 (defun terminal-p (node)
     (let ((hor-arcs (car (get-node-state-board node)))
         (ver-arcs (cadr (get-node-state-board node))))
