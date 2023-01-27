@@ -214,7 +214,7 @@
         (format out "Player 1 score: ~a~%" player-1-score)
         (format out "Player 2 score: ~a~%" player-2-score)
         (format out "Node cuts: ~a~%" cut-nodes)
-        (format out "Explored-nodes: a~%" explored-nodes)
+        (format out "Explored-nodes: ~a~%" explored-nodes)
         (format out "--------------------------------------------------------------------------------------~%")
     )
 )
