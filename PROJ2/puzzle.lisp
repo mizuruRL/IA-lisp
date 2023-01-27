@@ -256,23 +256,21 @@ and a box target TARGET."
 )
 
 (defun starting-board ()
-    '(((0 2 0)(1 0 0)(0 2 0))((1 0)(2 0)(0 0)(1 0)))
+    '(((0 0 0 0 0 0)(0 0 0 0 0 0)(0 0 0 0 0 0)(0 0 0 0 0 0)(0 0 0 0 0 0)(0 0 0 0 0 0))((0 0 0 0 0)(0 0 0 0 0)(0 0 0 0 0)(0 0 0 0 0)(0 0 0 0 0)(0 0 0 0 0)(0 0 0 0 0)))
 )
 
 (defun play-cpu (state depth player &optional (max-player 2))
-    (reset-vars)
+    (reset-vars state)
     (negamax (create-node state) depth player most-negative-fixnum most-positive-fixnum 1 max-player)
 )
 
 (defun play-human (state arc-type line column player)
-    (let ((arc-fun (get-arc-fun arc-type)))
-        (if (null arc-type)
-            -1
-            (let ((new-board (funcall arc-fun (car state) line column player)))
-                (if (null new-board)
-                    nil
-                    (list new-board (check-all-closed-boxes new-board player) (check-all-closed-boxes new-board (switch-player player)))
-                )
+    (if (null arc-type)
+        nil
+        (let ((new-board (funcall arc-type (car state) line column player)))
+            (if (null new-board)
+                nil
+                (list new-board (check-all-closed-boxes new-board player) (check-all-closed-boxes new-board (switch-player player)))
             )
         )
     )

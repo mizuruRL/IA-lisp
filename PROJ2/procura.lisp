@@ -19,8 +19,8 @@
     )
 )
 
-(defun reset-vars ()
-    (setf *optimal-play* (list nil most-negative-fixnum))
+(defun reset-vars (state)
+    (setf *optimal-play* (list state most-negative-fixnum))
     (setf *cuts* 0)
     (setf *explored* 0)
 )
