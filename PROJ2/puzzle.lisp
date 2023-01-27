@@ -311,7 +311,8 @@ for max-player"
 )
 
 (defun eval-node (node player)
-"Evaluates a given node's score. The formula it follows is: (total player arcs + (total player boxes * 2). The opposing player's
-node evaluation is subtracted from the given player's evaluation."
+"Evaluates a given node's score. The formula it follows is: 
+(total player arcs + (total types of adjacent player arcs to horizontal arcs * 2) + (total player boxes * 3). 
+The opposing player's node evaluation is subtracted from the given player's evaluation."
     (- (+ (* 3 (get-node-state-score-player node player)) (count-total-arcs-player (get-node-state-board node) player) (* 2 (get-adjacent-hor-arcs (get-node-state-board node) player))) (+ (* 3 (get-node-state-score-player node (switch-player player))) (count-total-arcs-player (get-node-state-board node) (switch-player player)) (* 2 (get-adjacent-hor-arcs (get-node-state-board node) (switch-player player)))))
 )
