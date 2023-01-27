@@ -1,5 +1,5 @@
 (defun main-menu ()
-"Main menu function. Displays the welcome message and problem to pick."
+"Main menu function. Displays the welcome message and redirects to the game mode menu."
     (format t "~%~%~%~%~%~%~%~%~%")
     (format t "Welcome to the Dots and Boxes game!~%")
     (format t "Developed by: Andre Dias and Joao Caetano~%~%")
@@ -7,6 +7,7 @@
 )
 
 (defun game-mode-menu ()
+"Displays and handles game mode selection logic."
     (reset-vars nil)
     (format t "Pick the desired game mode: ~%")
     (format t "1 - You Vs AI~%")
@@ -22,6 +23,7 @@
 )
 
 (defun bot-bot-game (state)
+"Function that handles bot vs bot interaction. State is the current state of the game."
     (if (game-overp state)
         (end-game state)
         (let ((board (car state))
@@ -30,7 +32,7 @@
                 (format t "~%~%~%")
                 (print-state state)
                 (let ((play (play-cpu state 2 1 1)))
-                    (cond ((null play) (error-handle 'human-bot-game "Invalid play." state))
+                    (cond ((null play) (error-handle 'bot-bot-game "Error: Bot had invalid play." state))
                             ((game-overp (car *optimal-play*)) (end-game (car *optimal-play*)))
                             (T (cpu-play-handle (car *optimal-play*) 'bot-bot-game))
                     )
@@ -41,6 +43,7 @@
 )
 
 (defun human-bot-game (state)
+"Function that handles human vs bot interaction. State is the current state of the game."
     (if (game-overp state)
         (end-game state)
         (let ((board (car state))
@@ -64,6 +67,7 @@
 )
 
 (defun cpu-play-handle (state game-mode)
+"Handles the responding play to another play, given that play's state and game-mode. Game-mode function is called at the end to repeat the game cycle."
     (print-state state)
     (progn
         (play-cpu state 2 2)
@@ -72,6 +76,7 @@
 )
 
 (defun get-input-line ()
+"Function that handles user input for line selection."
     (format t "~%Pick line:~%")
     (format t ">")
     (let ((line (read)))
@@ -85,6 +90,7 @@
 )
 
 (defun get-input-column ()
+"Function that handles user input for column selection."
     (format t "~%Pick column:~%")
     (format t ">")
     (let ((column (read)))
@@ -98,6 +104,7 @@
 )
 
 (defun get-input-arc ()
+"Function that handles user input for arc selection."
     (format t "~%Pick arc type (v - Vertical, h - Horizontal):~%")
     (format t ">")
     (let ((in (read)))
@@ -113,6 +120,7 @@
 )
 
 (defun game-overp (state)
+"Checks if a state has no more possible moves, therefore triggering a game over signal."
     (let ((hor-arcs (caar state))
         (ver-arcs (cadar state)))
         (and (no-more-moves hor-arcs) (no-more-moves ver-arcs))
@@ -120,11 +128,13 @@
 )
 
 (defun end-game (state)
+"Ends the game from a given state"
     (show-winner state)
     (print-state state)
 )
 
 (defun show-winner (state)
+"Shows the winner for a given game state."
     (let ((player-1-score (second state))
     (player-2-score (third state)))
         (cond ((> player-1-score player-2-score) (format t "~%~%Player 1 won~%~%"))
@@ -134,6 +144,7 @@
 )
 
 (defun error-handle (menu message &optional arg)
+"Error handling function used to print an error message. Menu is the menu function where the error ocurred. If menu requires an argument, it'll be specified in arg."
     (format t message)
     (if (null arg)
         (funcall menu)
@@ -180,7 +191,7 @@
 )
 
 (defun print-state (state)
-"Outputs the SOLUTION with used ALGORITHM to the CLI."
+"Outputs the game STATE to the CLI, paired with number of cut and explored nodes."
     (let ((board (display-board (car state)))
         (player-1-score (second state))
         (player-2-score (third state))
@@ -197,7 +208,7 @@
 )
 
 (defun output-results (board player-1-score player-2-score cut-nodes explored-nodes)
-"Outputs the SOLUTION with used ALGORITHM to a file results.txt."
+"Outputs the results of an alphabeta search to a file log.dat."
     (with-open-file (out "log.dat" :direction :output :if-exists :append :if-does-not-exist :create)
         (format out "Board: ~%~a~%" board)
         (format out "Player 1 score: ~a~%" player-1-score)
@@ -209,8 +220,9 @@
 )
 
 (defun start ()
+"Program start function."
     (load (compile-file "puzzle.lisp"))
-    (load (compile-file "procura.lisp"))
-    (load (compile-file "projeto.lisp"))
+    (load (compile-file "algoritmo.lisp"))
+    (load (compile-file "jogo.lisp"))
     (main-menu)
 )

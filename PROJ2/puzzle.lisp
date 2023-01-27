@@ -1,5 +1,7 @@
 (defun create-node (state &optional parent-node (node-level 0) (h 0))
-"Function to create the node data-estructure using a state, the parent node, its node level and heuristic value."
+"Function to create the node data-structure using a state, the parent node, its node level and heuristic value. State is a
+list where the first element is the board representation, the second element represents the first player's score, and the third
+element represents the second player's score."
     (list state parent-node node-level h) 
 )
 
@@ -9,10 +11,12 @@
 )
 
 (defun get-node-state-board (node)
+"Returns a given node's board, that is stored within node's state."
     (car (get-node-state node))
 )
 
 (defun get-node-state-score-player (node player)
+"Returns a given node's player score, that is stored within node's state."
     (if (= 1 player)
         (second (get-node-state node))
         (third (get-node-state node))
@@ -48,19 +52,12 @@
 )
 
 (defun h2 (board player)
-"Second heuristic function. It is calculated by checking how far NODE `node is from achieving the box goal TARGET 
-and divides it by the sum of adjacent arc types a given horizontal arc has."
+"Heuristic function to order nodes for negamax. It returns the sum of types of adjacent arcs relative to horizontal arcs on a given board, for a given player."
     (get-adjacent-hor-arcs board player)
 )
 
-(defun h0 (&optional node target)
-"Null heuristic, always returns 0. Really only used as a default value."
-    (declare (ignore node target))
-    0
-)
-
 (defun qsort-nodes (nodes-list)
-"Quicksorts a given list of nodes in ascending order by node cost."
+"Quicksorts a given list of nodes in descending order by node heuristic."
     (cond ((null nodes-list) nil)
         (t (append 
                 (qsort-nodes (get-sublist-by-comparator (cdr nodes-list) (get-node-h (car nodes-list)) '>=))
@@ -80,8 +77,8 @@ and divides it by the sum of adjacent arc types a given horizontal arc has."
 )
 
 (defun generate-successors (node action-list player &optional (h-func 'h2) (line 1) (column 1))
-"Returns a list with all succeeding nodes from a given NODE `node. It will apply the actions in ACTION-LIST, according to the ALGORITHM, 
-target of closed boxes TARGET, max tree depth DEPTH (for dfs), heuristic function H-FUNC (for a*), starting from a given LINE x COLUMN y"
+"Returns a list with all succeeding nodes from a given NODE `node. It will apply all possible actions from action-list for player and 
+saves the heuristic function's H-FUNC result to the respective successor."
     (if (null node)
         nil
         (let ((succ-node (generate-successor node (car action-list) line column h-func player))
@@ -103,7 +100,7 @@ target of closed boxes TARGET, max tree depth DEPTH (for dfs), heuristic functio
 
 (defun generate-successor (node action &optional (line 1) (column 1) (h-func 'h2) (player 1))
 "Generates a succeeding node from a given NODE `node. It will perform ACTION on its state, at LINE x COLUMN y, with a given heuristic function H-FUNC
-and a box target TARGET."
+for a given player."
     (if (or (null action) (null line) (null column))
         nil
         (let ((board (funcall action (get-node-state-board node) line column player)))
@@ -121,7 +118,7 @@ and a box target TARGET."
 )
 
 (defun insert-vertical-arc (board line column &optional (player 1))
-"Inserts a vertical arc on BOARD at LINE COLUMN"
+"Inserts a vertical arc on BOARD at LINE COLUMN for a given player."
     (cond ((null board) nil)
         ((or (not (in-bounds-vertical (cadr board) line column)) (not (= 0 (get-vertical-arc-at (cadr board) line column)))) nil)
         (t (list (car board) (append (get-preceeding (cadr board) column) (cons (replace-n (get-n (cadr board) column) line player) nil) (nthcdr column (cadr board)))))
@@ -129,7 +126,7 @@ and a box target TARGET."
 )
 
 (defun insert-horizontal-arc (board line column &optional (player 1))
-"Inserts a horizontal arc on BOARD at LINE COLUMN"
+"Inserts a horizontal arc on BOARD at LINE COLUMN for a given player."
     (cond ((null board) nil)
         ((or (not (in-bounds-horizontal (car board) line column)) (not (= 0 (get-horizontal-arc-at (car board) line column)))) nil)
         (t (list (append (get-preceeding (car board) line) (cons (replace-n (get-n (car board) line) column player) nil) (nthcdr line (car board))) (cadr board)))
@@ -137,14 +134,14 @@ and a box target TARGET."
 )
 
 (defun check-box (board line column &optional (player 1))
-"Checks if there is a box at LINE COLUMN from BOARD."
+"Checks if there is a box at LINE COLUMN from BOARD from a given player."
     (cond ((null board) nil)
           (t (and (= player (get-vertical-arc-at (cadr board) line column)) (= player (get-vertical-arc-at (cadr board) line (1+ column))) (= player (get-horizontal-arc-at (car board) line column)) (= player (get-horizontal-arc-at (car board) (1+ line) column))))
         )      
 )
 
 (defun check-all-closed-boxes (board player &optional (line 1) (column 1))
-"Checks how many closed boxes a given BOARD has."
+"Checks how many closed boxes a given BOARD has for a given player."
     (cond ((not (in-bounds-horizontal (car board) (1+ line) 1)) 0)
           ((not (in-bounds-horizontal (car board) 1 column)) (check-all-closed-boxes board player (1+ line) 1))
           ((check-box board line column player) (1+ (check-all-closed-boxes board player line (1+ column))))
@@ -245,6 +242,7 @@ and a box target TARGET."
 )
 
 (defun count-total-arcs-player (board player)
+"Counts the total arcs that exist on the board for a given player."
     (let ((ver-arcs (cadr board))
         (hor-arcs (car board)))
         (+ (count-arcs-player ver-arcs player) (count-arcs-player hor-arcs player))
@@ -252,19 +250,24 @@ and a box target TARGET."
 )
 
 (defun count-arcs-player (arcs player)
+"Counts the arcs that a player has on the board."
     (count player (apply #'append arcs))
 )
 
 (defun starting-board ()
+"Returns the default starting board."
     '(((0 0 0 0 0 0)(0 0 0 0 0 0)(0 0 0 0 0 0)(0 0 0 0 0 0)(0 0 0 0 0 0)(0 0 0 0 0 0))((0 0 0 0 0)(0 0 0 0 0)(0 0 0 0 0)(0 0 0 0 0)(0 0 0 0 0)(0 0 0 0 0)(0 0 0 0 0)))
 )
 
 (defun play-cpu (state depth player &optional (max-player 2))
+"Simulates a play for a bot on a given state, by running negamax on it, with a given depth. Player is the starting player value. Negamax tries to maximize
+for max-player"
     (reset-vars state)
     (negamax (create-node state) depth player most-negative-fixnum most-positive-fixnum 1 max-player)
 )
 
 (defun play-human (state arc-type line column player)
+"Makes a new state, based on given state, with the given changes through line column and player. This simulates a human play."
     (if (null arc-type)
         nil
         (let ((new-board (funcall arc-type (car state) line column player)))
@@ -277,19 +280,22 @@ and a box target TARGET."
 )
 
 (defun get-arc-fun (arc-type)
+"Converts arc-type to the corresponding action in all-actions-list. 'h -> insert-horizontal-arc; 'v -> insert-vertical-arc."
     (cond ((eql arc-type 'h) (car (all-actions-list)))
           ((eql arc-type 'v) (cadr (all-actions-list)))
           (T nil)
     )
 )
 (defun terminal-p (node)
+"Checks if given node is a terminal node (no more moves)."
     (let ((hor-arcs (car (get-node-state-board node)))
         (ver-arcs (cadr (get-node-state-board node))))
         (and (no-more-moves hor-arcs) (no-more-moves ver-arcs))
     )
 )
 
-(defun no-more-moves (arcs)   
+(defun no-more-moves (arcs)
+"Checks if there are no more moves for a given arc list ARCS." 
     (every #'identity (mapcar (lambda (l)
         (every #'identity (mapcar (lambda (arc)
             (if (= arc 0) nil t)) l))) arcs)
@@ -297,6 +303,7 @@ and a box target TARGET."
 )
 
 (defun switch-player (player)
+"Switches player value."
     (if (= player 1)
         2
         1
@@ -304,5 +311,7 @@ and a box target TARGET."
 )
 
 (defun eval-node (node player)
-    (- (+ (* 2 (get-node-state-score-player node player)) (count-total-arcs-player (get-node-state-board node) player)) (+ (* 2 (get-node-state-score-player node (switch-player player))) (count-total-arcs-player (get-node-state-board node) (switch-player player))))
+"Evaluates a given node's score. The formula it follows is: (total player arcs + (total player boxes * 2). The opposing player's
+node evaluation is subtracted from the given player's evaluation."
+    (- (+ (* 3 (get-node-state-score-player node player)) (count-total-arcs-player (get-node-state-board node) player) (* 2 (get-adjacent-hor-arcs (get-node-state-board node) player))) (+ (* 3 (get-node-state-score-player node (switch-player player))) (count-total-arcs-player (get-node-state-board node) (switch-player player)) (* 2 (get-adjacent-hor-arcs (get-node-state-board node) (switch-player player)))))
 )
